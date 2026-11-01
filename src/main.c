@@ -11,6 +11,11 @@
 #define NS_PER_SECOND 1e9f
 
 typedef struct {
+  SDL_Texture *atlas;
+  int rows, columns, tile_size;
+} MapAtlas;
+
+typedef struct {
   int cells[MAP_H][MAP_W];
 } Map;
 
@@ -19,6 +24,7 @@ typedef struct {
   SDL_Renderer *renderer;
   bool running;
   Map map;
+  MapAtlas map_atlas;
 } Game;
 
 void map_draw(Game *g);
@@ -33,11 +39,21 @@ bool start(Game *g)
   if (!SDL_SetRenderLogicalPresentation(g->renderer, MAP_W, MAP_H, SDL_LOGICAL_PRESENTATION_LETTERBOX))
     return false;
 
+
+  g->map_atlas.atlas = IMG_LoadTexture(g->renderer, "assets/world_tileset.png");
+  if (!g->map_atlas.atlas) return false;
+
+  SDL_SetTextureScaleMode(g->map_atlas.atlas, SDL_SCALEMODE_PIXELART);
+  g->map_atlas.rows = 8;
+  g->map_atlas.columns = 8;
+  g->map_atlas.tile_size = 16;
+
+
   for(int y = 0; y < MAP_H; ++y)
   {
     for(int x = 0; x < MAP_W; ++x)
     {
-      int id = (x == 0 || y == 0 || x == MAP_W-1 || y == MAP_H-1) ? 1 : 2;
+      int id = (x == 0 || y == 0 || x == MAP_W-1 || y == MAP_H-1) ? 18 : 23;
       g->map.cells[y][x] = id;
     }
   }
@@ -74,14 +90,25 @@ void rectangle(Game *g, int x, int y, int w, int h, SDL_Color c)
   SDL_RenderFillRect(g->renderer, &box);
 }
 
+void tile(Game *g, int x, int y, int id)
+{
+  int tile_size = g->map_atlas.tile_size;
+  int tx = id % g->map_atlas.columns;
+  int ty = id / g->map_atlas.rows;
+
+  SDL_FRect source = {tx*tile_size, ty*tile_size, tile_size, tile_size};
+  SDL_FRect dest = {x, y, CELL, CELL};
+  SDL_RenderTexture(g->renderer, g->map_atlas.atlas, &source, &dest);
+}
+
 void map_draw(Game *g)
 {
   for(int y = 0; y < MAP_H; ++y)
   {
     for(int x = 0; x < MAP_W; ++x)
     {
-      SDL_Color colour = g->map.cells[y][x] == 1 ? (SDL_Color){255, 0, 0, 255} : (SDL_Color){0, 150, 1, 255};
-      rectangle(g, x*CELL, y*CELL, CELL-1, CELL-1, colour);
+      int id = g->map.cells[y][x];
+      tile(g, x*CELL, y*CELL, id);
     }
   }
 }
