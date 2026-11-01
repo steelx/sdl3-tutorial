@@ -1,6 +1,6 @@
 # sdl_rpg
 
-A native macOS C17 starter using Apple Clang, CMake, Ninja and CTest.
+A native C17 starter using Clang, CMake, Ninja and CTest.
 
 ## Build, run and test
 
