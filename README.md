@@ -2,6 +2,8 @@
 
 A native C17 starter using Clang, CMake, Ninja and CTest.
 
+NOTICE: you cannot use these assets commercially, only for hobby projects with credits. If you found this code useful or you love it, you can follow me on x.com/ajinkyax or Subscribe on Youtube.com/c/gridshiftdev
+
 ## Build, run and test
 
 ```sh
