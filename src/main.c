@@ -29,6 +29,36 @@ typedef struct {
 
 void map_draw(Game *g);
 
+bool map_read(Map *out, const char *path)
+{
+  FILE *f = fopen(path, "r");
+  if (!f) {
+    SDL_SetError("File not found : %s\n", path);
+    return false;
+  }
+
+  Map next = {0};
+  int width, height = 0;
+  bool ok = fscanf(f, "%d %d", &width, &height) == 2;
+  ok = ok && width == 32 && height == 24;
+
+  for (int y = 0; ok && y < 32; ++y)
+  {
+    for (int x = 0; ok && x < 24; ++x)
+    {
+      int id = 0;
+      ok = fscanf(f, "%d", &id) == 1 && id >= 0 && id <= 64;
+      if (ok) next.cells[y][x] = id;
+    }
+  }
+
+  if (fclose(f) != 0) ok = false;
+
+  if (ok) *out = next;
+
+  return ok;
+}
+
 bool start(Game *g)
 {
   if (!SDL_Init(SDL_INIT_VIDEO)) return false;
@@ -48,14 +78,9 @@ bool start(Game *g)
   g->map_atlas.columns = 8;
   g->map_atlas.tile_size = 16;
 
-
-  for(int y = 0; y < MAP_H; ++y)
+  if (!map_read(&g->map, "maps/start.map"))
   {
-    for(int x = 0; x < MAP_W; ++x)
-    {
-      int id = (x == 0 || y == 0 || x == MAP_W-1 || y == MAP_H-1) ? 18 : 23;
-      g->map.cells[y][x] = id;
-    }
+    return false;
   }
 
   g->running = true;

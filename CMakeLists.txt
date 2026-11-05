@@ -12,7 +12,17 @@ find_package(SDL3_image CONFIG REQUIRED)
 find_package(SDL3_ttf CONFIG REQUIRED)
 
 
-add_executable(${PROJECT_NAME} src/main.c)
+add_executable(${PROJECT_NAME}
+  src/main.c
+  # add additional c files below
+  #src/tiled_map.c
+)
+
+# Tell the compiler to look inside include/ for header files
+target_include_directories(${PROJECT_NAME} PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
 target_link_libraries(
   ${PROJECT_NAME} PRIVATE
   SDL3::SDL3 SDL3_image::SDL3_image SDL3_ttf::SDL3_ttf cjson
