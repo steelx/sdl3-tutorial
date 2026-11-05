@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <tiled_map.h>
 
 #define MAP_W 640
 #define MAP_H 360
@@ -16,10 +17,6 @@ typedef struct {
 } MapAtlas;
 
 typedef struct {
-  int cells[MAP_H][MAP_W];
-} Map;
-
-typedef struct {
   SDL_Window *window;
   SDL_Renderer *renderer;
   bool running;
@@ -29,35 +26,6 @@ typedef struct {
 
 void map_draw(Game *g);
 
-bool map_read(Map *out, const char *path)
-{
-  FILE *f = fopen(path, "r");
-  if (!f) {
-    SDL_SetError("File not found : %s\n", path);
-    return false;
-  }
-
-  Map next = {0};
-  int width, height = 0;
-  bool ok = fscanf(f, "%d %d", &width, &height) == 2;
-  ok = ok && width == 32 && height == 24;
-
-  for (int y = 0; ok && y < 32; ++y)
-  {
-    for (int x = 0; ok && x < 24; ++x)
-    {
-      int id = 0;
-      ok = fscanf(f, "%d", &id) == 1 && id >= 0 && id <= 64;
-      if (ok) next.cells[y][x] = id;
-    }
-  }
-
-  if (fclose(f) != 0) ok = false;
-
-  if (ok) *out = next;
-
-  return ok;
-}
 
 bool start(Game *g)
 {
@@ -128,12 +96,13 @@ void tile(Game *g, int x, int y, int id)
 
 void map_draw(Game *g)
 {
+  (void)g;
   for(int y = 0; y < MAP_H; ++y)
   {
     for(int x = 0; x < MAP_W; ++x)
     {
-      int id = g->map.cells[y][x];
-      tile(g, x*CELL, y*CELL, id);
+      //int id = g->map.cells[y][x];
+      //tile(g, x*CELL, y*CELL, id);
     }
   }
 }

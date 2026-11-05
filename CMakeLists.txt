@@ -15,7 +15,7 @@ find_package(SDL3_ttf CONFIG REQUIRED)
 add_executable(${PROJECT_NAME}
   src/main.c
   # add additional c files below
-  #src/tiled_map.c
+  src/tiled_map.c
 )
 
 # Tell the compiler to look inside include/ for header files
