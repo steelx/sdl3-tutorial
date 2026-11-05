@@ -46,10 +46,12 @@ bool start(Game *g)
   g->map_atlas.columns = 8;
   g->map_atlas.tile_size = 16;
 
-  if (!map_read(&g->map, "maps/start.map"))
+  if (!map_read(&g->map, "maps/start.json"))
   {
     return false;
   }
+
+  printf("map=%dx%d tile=%dx%d\n", g->map.width, g->map.height, g->map.tile_width, g->map.tile_height);
 
   g->running = true;
   return true;
