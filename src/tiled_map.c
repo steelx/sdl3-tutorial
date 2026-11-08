@@ -8,6 +8,8 @@
 #include <cJSON.h>
 #include <stdlib.h>
 #include <string.h>
+#include <SDL3/SDL_error.h>
+
 
 static bool map_number(const cJSON *o, const char *key, bool required, double fallback, double *out)
 {
@@ -61,13 +63,66 @@ static bool map_string_eq(const cJSON *o, const char *key, const char *expected,
   return cJSON_IsString(val) && !strcmp(val->valuestring, expected);
 }
 
+static bool map_tilesets(Map *m, const cJSON *o, const char *path)
+{
+  const cJSON *tilesets = cJSON_GetObjectItemCaseSensitive(o, "tilesets");
+  if (!cJSON_IsArray(tilesets) || cJSON_GetArraySize(tilesets) != 1) {
+    SDL_SetError("Error in tilesets, array length mismatch!");
+    return false;
+  }
+
+  const cJSON *s = cJSON_GetArrayItem(tilesets, 0);
+  if (!cJSON_IsObject(s)) return false;
+
+  int tw, th = 0;
+  if (
+    !map_int(s, "tilewidth", true, 0, &tw) || tw != m->tile_width ||
+    !map_int(s, "tileheight", true, 0, &th) || th != m->tile_height ||
+    !map_int(s, "tilecount", true, 0, &m->tile_count) ||
+    !map_int(s, "firstgid", true, 0, &m->firstgid) ||
+    !map_int(s, "columns", true, 0, &m->columns) ||
+    !map_int(s, "imagewidth", true, 0, &m->image_width) ||
+    !map_int(s, "imageheight", true, 0, &m->image_height)
+  ) {
+    SDL_SetError("Error tilesets validating fields in set!");
+    return false;
+  }
+
+  if (m->columns * tw != m->image_width) {
+    SDL_SetError("Error in tilesets wrong image_width!");
+    return false;
+  }
+
+  int rows = (m->tile_count + m->columns-1) / m->columns;
+  if ((rows * th) > m->image_height) {
+    SDL_SetError("Error in tilesets image_height is wrong!");
+    return false;
+  }
+
+  const cJSON *image = cJSON_GetObjectItemCaseSensitive(s, "image");
+  if (!cJSON_IsString(image)) {
+    SDL_SetError("Error in tilesets image key not found!");
+    return false;
+  }
+
+  // expected: maps/../assets/world.png
+  // path => maps/start.json
+  // image -> ../assets/world_tileset.png
+  const char *slash = strrchr(path, '/');
+  int prefix = slash ? (int)(slash-path+1) : 0;
+
+  int n = image->valuestring[0] == '/'
+    ? snprintf(m->image, sizeof m->image, "%s", image->valuestring)
+    : snprintf(m->image, sizeof m->image, "%.*s%s", prefix, path, image->valuestring);
+
+  return n >= 0 && (size_t)n < sizeof m->image;
+}
+
 static bool map_parse(const cJSON *root, Map *m, const char *path)
 {
   if (!cJSON_IsObject(root)) return false;
 
-  (void)path;
   bool infinite;
-
   if (
     !map_string_eq(root, "type", "map", false) ||
     !map_string_eq(root, "orientation", "orthogonal", true) ||
@@ -76,7 +131,8 @@ static bool map_parse(const cJSON *root, Map *m, const char *path)
     !map_int(root, "width", true, 0, &m->width) ||
     !map_int(root, "height", true, 0, &m->height) ||
     !map_int(root, "tilewidth", true, 0, &m->tile_width) ||
-    !map_int(root, "tileheight", true, 0, &m->tile_height)
+    !map_int(root, "tileheight", true, 0, &m->tile_height) ||
+    !map_tilesets(m, root, path)
   ) return false;
 
   return true;

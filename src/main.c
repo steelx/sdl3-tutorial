@@ -52,6 +52,7 @@ bool start(Game *g)
   }
 
   printf("map=%dx%d tile=%dx%d\n", g->map.width, g->map.height, g->map.tile_width, g->map.tile_height);
+  printf("atlas: %s, tile_count=%d, image: %dx%d\n", g->map.image, g->map.tile_count, g->map.image_width, g->map.image_height);
 
   g->running = true;
   return true;
@@ -87,9 +88,10 @@ void rectangle(Game *g, int x, int y, int w, int h, SDL_Color c)
 
 void tile(Game *g, int x, int y, int id)
 {
+  int idx = id = g->map.firstgid;
   int tile_size = g->map_atlas.tile_size;
-  int tx = id % g->map_atlas.columns;
-  int ty = id / g->map_atlas.rows;
+  int tx = idx % g->map_atlas.columns;
+  int ty = idx / g->map_atlas.rows;
 
   SDL_FRect source = {tx*tile_size, ty*tile_size, tile_size, tile_size};
   SDL_FRect dest = {x, y, CELL, CELL};

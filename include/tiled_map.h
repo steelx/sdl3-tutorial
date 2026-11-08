@@ -10,6 +10,8 @@
 typedef struct {
   int width, height;
   int tile_width, tile_height;
+  char image[512];
+  int firstgid, columns, tile_count, image_width, image_height;
 } Map;
 
 bool map_read(Map *out, const char *path);
