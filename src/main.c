@@ -88,7 +88,11 @@ void rectangle(Game *g, int x, int y, int w, int h, SDL_Color c)
 
 void tile(Game *g, int x, int y, int id)
 {
-  int idx = id = g->map.firstgid;
+  if (id <= 0) {
+    fprintf(stderr, "Error tile: invalid ID");
+    return;
+  }
+  int idx = id - g->map.firstgid;
   int tile_size = g->map_atlas.tile_size;
   int tx = idx % g->map_atlas.columns;
   int ty = idx / g->map_atlas.rows;
