@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <cJSON.h>
 #include <stdlib.h>
@@ -118,11 +119,88 @@ static bool map_tilesets(Map *m, const cJSON *o, const char *path)
   return n >= 0 && (size_t)n < sizeof m->image;
 }
 
+static bool map_gid(const cJSON *v, int count, int *out)
+{
+  /* Deliberately reject flip flags until the renderer implements them. */
+  if (!cJSON_IsNumber(v) || !isfinite(v->valuedouble) ||
+        floor(v->valuedouble) != v->valuedouble || v->valuedouble < 0 || v->valuedouble > count) {
+    return false;
+  }
+  *out = (int)v->valuedouble;
+  return true;
+}
+
+static bool map_layer(Map *m, const cJSON *layer, bool *ground_seen, bool *collision_seen)
+{
+  const cJSON *name = cJSON_GetObjectItemCaseSensitive(layer, "name");
+  if (!cJSON_IsString(name)) return false;
+
+  bool bIsGroundLayer = strcmp(name->valuestring, "ground") == 0;
+  bool bIsCollisionLayer = strcmp(name->valuestring, "collision") == 0;
+
+  bool visible; double opacity = 0;
+  if (
+    (*ground_seen && bIsGroundLayer) || (*collision_seen && bIsCollisionLayer) ||
+    !map_bool(layer, "visible", 0, &visible) ||
+    !map_number(layer, "opacity", false, 1, &opacity)
+  ) {
+    SDL_SetError("map_layer layer has missing properties!");
+    return false;
+  }
+
+  if (bIsGroundLayer) *ground_seen = true;
+  if (bIsCollisionLayer) *collision_seen = true;
+
+
+  // layer validations
+  int id, w, h = 0;
+  if (
+    !map_string_eq(layer, "type", "tilelayer", false) ||
+    !map_int(layer, "width", true, 0, &w) ||
+    !map_int(layer, "height", true, 0, &h) ||
+    !map_int(layer, "id", true, -1, &id)
+  ) {
+    SDL_SetError("map_layer validation failed for: %s\n", name->valuestring);
+    return false;
+  }
+
+  MapLayer *next_layer = NULL;
+  if (!bIsGroundLayer && !bIsCollisionLayer) {
+    next_layer = &m->layers[m->layer_count++];
+    snprintf(next_layer->name, sizeof next_layer->name, "%s", name->valuestring);
+    next_layer->id = id;
+    next_layer->opacity = (float)opacity;
+    next_layer->visible = visible;
+    next_layer->cells = calloc((size_t)w*h, sizeof *next_layer->cells);
+  }
+
+  const cJSON *data = cJSON_GetObjectItemCaseSensitive(layer, "data");
+  if (!cJSON_IsArray(data) || cJSON_GetArraySize(data) != (w*h)) {
+    SDL_SetError("Layer %s data mismatch!", name->valuestring);
+    return false;
+  }
+
+
+  int i = 0; const cJSON *v;
+  cJSON_ArrayForEach(v, data) {
+    int gid;
+    if (!map_gid(v, m->tile_count, &gid)) return false;
+
+    //int x = i%w, y = i/w; but we will need for retrival
+    if (bIsGroundLayer) m->cells[i] = gid;
+    if (bIsCollisionLayer) m->collsions[i] = gid != 0;
+    if (next_layer) next_layer->cells[i] = gid;
+    ++i;
+  }
+
+  return true;
+}
+
 static bool map_parse(const cJSON *root, Map *m, const char *path)
 {
   if (!cJSON_IsObject(root)) return false;
 
-  bool infinite;
+  bool infinite, ground, collision = false;
   if (
     !map_string_eq(root, "type", "map", false) ||
     !map_string_eq(root, "orientation", "orthogonal", true) ||
@@ -134,6 +212,44 @@ static bool map_parse(const cJSON *root, Map *m, const char *path)
     !map_int(root, "tileheight", true, 0, &m->tile_height) ||
     !map_tilesets(m, root, path)
   ) return false;
+
+  size_t count = (size_t)m->width * m->height;
+  m->cells = calloc(count, sizeof *m->cells);
+  m->collsions = calloc(count, sizeof *m->collsions);
+  if (!m->cells && !m->collsions) return false;
+
+  const cJSON *layers = cJSON_GetObjectItemCaseSensitive(root, "layers");
+  if (!cJSON_IsArray(layers)) {
+    SDL_SetError("map_parse layers array not found!");
+    return false;
+  }
+
+  const cJSON *layer;
+  uint8_t visual_count = 0;
+  cJSON_ArrayForEach(layer, layers) {
+    const cJSON *name = cJSON_GetObjectItemCaseSensitive(layer, "name");
+    if (
+      cJSON_IsString(name) &&
+      strcmp("ground", name->valuestring) != 0 &&
+      strcmp("collision", name->valuestring) != 0
+    ) {
+      ++visual_count;
+    }
+  }
+
+  m->layer_count = 0;
+
+  if (visual_count > 0) {
+    m->layers = calloc(visual_count, sizeof *m->layers);
+    if (!m->layers) return false;
+  }
+  else {
+    m->layers = NULL;
+  }
+
+  cJSON_ArrayForEach(layer, layers) {
+    if (!map_layer(m, layer, &ground, &collision)) return false;
+  }
 
   return true;
 }
@@ -183,4 +299,25 @@ bool map_read(Map *out, const char *path)
   free(bytes);
 
   return true;
+}
+
+int get_map_gid(const Map *m, const int *cells, int x, int y)
+{
+  if (!m || !cells || x < 0 || y < 0 || x >= m->width || y >= m->height)
+    return 0;
+
+  return cells[(size_t)y*m->width + x];
+}
+
+bool get_collision_gid(const Map *m, int x, int y)
+{
+  if (!m || !m->collsions || x < 0 || y < 0 || x>=m->width || y >= m->height) return false;
+  return m->collsions[(size_t)y*m->width + x];
+}
+
+void map_free(Map *m)
+{
+  if (!m) return;
+
+  free(m->cells);
 }

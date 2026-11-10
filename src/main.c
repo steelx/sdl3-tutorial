@@ -46,13 +46,21 @@ bool start(Game *g)
   g->map_atlas.columns = 8;
   g->map_atlas.tile_size = 16;
 
-  if (!map_read(&g->map, "maps/start.json"))
+  if (!map_read(&g->map, "maps/small_room.json"))
   {
     return false;
   }
 
   printf("map=%dx%d tile=%dx%d\n", g->map.width, g->map.height, g->map.tile_width, g->map.tile_height);
   printf("atlas: %s, tile_count=%d, image: %dx%d\n", g->map.image, g->map.tile_count, g->map.image_width, g->map.image_height);
+  printf("ground[10,1]=%d\n", get_map_gid(&g->map, g->map.cells, 10, 1));
+  printf("collision[10,1]=%d\n", get_collision_gid(&g->map, 10, 1));
+  printf("visual layers=%d\n",g->map.layer_count);
+  for(int i=0;i<g->map.layer_count;++i) {
+    printf(
+      "layer %s: ID=%d visible=%d opacity=%.2f\n",
+      g->map.layers[i].name,g->map.layers[i].id,g->map.layers[i].visible,g->map.layers[i].opacity);
+  }
 
   g->running = true;
   return true;
