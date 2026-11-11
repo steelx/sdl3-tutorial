@@ -1,8 +1,10 @@
 # sdl_rpg
 
-A native C17 starter using Clang, CMake, Ninja and CTest.
+Building a JRPG Game in C; based on native C17 [starter-boilerplate](https://github.com/steelx/simple-c-boilerplate) using Clang, CMake, Ninja and CTest.
 
-NOTICE: you cannot use these assets commercially, only for hobby projects with credits. If you found this code useful or you love it, you can follow me on x.com/ajinkyax or Subscribe on Youtube.com/c/gridshiftdev
+ - **NOTICE**: You CANNOT use these assets commercially, ONLY for hobby projects with credits (cc. gridshift.dev).
+
+ - If you found this code useful or you love it, you can follow me on [x.com/ajinkyax](https://x.com/ajinkyax) or Subscribe on [Youtube.com/@gridshiftdev](https://www.youtube.com/@GridShiftDev)
 
 ## Build, run and test
 
