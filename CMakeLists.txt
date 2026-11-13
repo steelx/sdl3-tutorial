@@ -16,6 +16,8 @@ add_executable(${PROJECT_NAME}
   src/main.c
   # add additional c files below
   src/tiled_map.c
+  src/map_render.c
+  src/atlas.c
 )
 
 # Tell the compiler to look inside include/ for header files

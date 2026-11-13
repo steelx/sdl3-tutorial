@@ -1,3 +1,4 @@
+#include "map_render.h"
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 #include <stdbool.h>
@@ -5,62 +6,31 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <tiled_map.h>
+#include <game.h>
+#include <config.h>
 
-#define MAP_W 640
-#define MAP_H 360
-#define CELL 32
-#define NS_PER_SECOND 1e9f
-
-typedef struct {
-  SDL_Texture *atlas;
-  int rows, columns, tile_size;
-} MapAtlas;
-
-typedef struct {
-  SDL_Window *window;
-  SDL_Renderer *renderer;
-  bool running;
-  Map map;
-  MapAtlas map_atlas;
-} Game;
-
-void map_draw(Game *g);
+bool map_texture(Game *g, const Map *m);
 
 
 bool start(Game *g)
 {
   if (!SDL_Init(SDL_INIT_VIDEO)) return false;
 
-  if (!SDL_CreateWindowAndRenderer("First tilemap", 960, 570, SDL_WINDOW_RESIZABLE, &g->window, &g->renderer))
+  if (!SDL_CreateWindowAndRenderer("First tilemap", WINDOW_W, WINDOW_H, SDL_WINDOW_RESIZABLE, &g->window, &g->renderer))
     return false;
 
-  if (!SDL_SetRenderLogicalPresentation(g->renderer, MAP_W, MAP_H, SDL_LOGICAL_PRESENTATION_LETTERBOX))
+  if (!SDL_SetRenderLogicalPresentation(g->renderer, VIEW_W, VIEW_H, SDL_LOGICAL_PRESENTATION_LETTERBOX))
     return false;
 
 
-  g->map_atlas.atlas = IMG_LoadTexture(g->renderer, "assets/world_tileset.png");
-  if (!g->map_atlas.atlas) return false;
-
-  SDL_SetTextureScaleMode(g->map_atlas.atlas, SDL_SCALEMODE_PIXELART);
-  g->map_atlas.rows = 8;
-  g->map_atlas.columns = 8;
-  g->map_atlas.tile_size = 16;
-
-  if (!map_read(&g->map, "maps/small_room.json"))
-  {
-    return false;
-  }
+  if (!map_read(&g->map, "maps/small_room.json")) return false;
+  if (!map_texture(g, &g->map)) return false;
 
   printf("map=%dx%d tile=%dx%d\n", g->map.width, g->map.height, g->map.tile_width, g->map.tile_height);
   printf("atlas: %s, tile_count=%d, image: %dx%d\n", g->map.image, g->map.tile_count, g->map.image_width, g->map.image_height);
-  printf("ground[10,1]=%d\n", get_map_gid(&g->map, g->map.cells, 10, 1));
+  printf("ground[10,1]=%d\n", get_map_gid(&g->map, g->map.ground, 10, 1));
   printf("collision[10,1]=%d\n", get_collision_gid(&g->map, 10, 1));
-  printf("visual layers=%d\n",g->map.layer_count);
-  for(int i=0;i<g->map.layer_count;++i) {
-    printf(
-      "layer %s: ID=%d visible=%d opacity=%.2f\n",
-      g->map.layers[i].name,g->map.layers[i].id,g->map.layers[i].visible,g->map.layers[i].opacity);
-  }
+  printf("visual layers=%zu\n",g->map.layer_count);
 
   g->running = true;
   return true;
@@ -76,7 +46,7 @@ void draw(Game *g)
   SDL_SetRenderDrawColor(g->renderer, 0, 43, 58, 255);
   SDL_RenderClear(g->renderer);
   // map rendering
-  map_draw(g);
+  map_render(g);
 }
 
 void stop(Game *g)
@@ -94,33 +64,22 @@ void rectangle(Game *g, int x, int y, int w, int h, SDL_Color c)
   SDL_RenderFillRect(g->renderer, &box);
 }
 
-void tile(Game *g, int x, int y, int id)
+bool map_texture(Game *g, const Map *m)
 {
-  if (id <= 0) {
-    fprintf(stderr, "Error tile: invalid ID");
-    return;
-  }
-  int idx = id - g->map.firstgid;
-  int tile_size = g->map_atlas.tile_size;
-  int tx = idx % g->map_atlas.columns;
-  int ty = idx / g->map_atlas.rows;
+  SDL_Texture *next = IMG_LoadTexture(g->renderer, m->image);
+  if (!next) return false;
 
-  SDL_FRect source = {tx*tile_size, ty*tile_size, tile_size, tile_size};
-  SDL_FRect dest = {x, y, CELL, CELL};
-  SDL_RenderTexture(g->renderer, g->map_atlas.atlas, &source, &dest);
-}
-
-void map_draw(Game *g)
-{
-  (void)g;
-  for(int y = 0; y < MAP_H; ++y)
+  float w, h = 0;
+  if (!SDL_GetTextureSize(next, &w, &h) || w != m->image_width || h != m->image_height)
   {
-    for(int x = 0; x < MAP_W; ++x)
-    {
-      //int id = g->map.cells[y][x];
-      //tile(g, x*CELL, y*CELL, id);
-    }
+    SDL_DestroyTexture(next);
+    return false;
   }
+
+  SDL_SetTextureScaleMode(next, SDL_SCALEMODE_PIXELART);
+  SDL_DestroyTexture(g->atlas);
+  g->atlas = next;
+  return true;
 }
 
 int main(void) {

@@ -2,6 +2,7 @@
 #define SDL_RPG_TILED_MAP_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #define MAP_MAX_W 32
 #define MAP_MAX_H 24
@@ -16,10 +17,10 @@ typedef struct {
 } MapLayer;
 
 typedef struct {
-  int *cells;
+  int *ground;
   bool *collsions;
   MapLayer *layers;
-  int layer_count;
+  size_t layer_count;
 
   int width, height;
   int tile_width, tile_height;

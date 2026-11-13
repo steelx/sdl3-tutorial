@@ -187,7 +187,7 @@ static bool map_layer(Map *m, const cJSON *layer, bool *ground_seen, bool *colli
     if (!map_gid(v, m->tile_count, &gid)) return false;
 
     //int x = i%w, y = i/w; but we will need for retrival
-    if (bIsGroundLayer) m->cells[i] = gid;
+    if (bIsGroundLayer) m->ground[i] = gid;
     if (bIsCollisionLayer) m->collsions[i] = gid != 0;
     if (next_layer) next_layer->cells[i] = gid;
     ++i;
@@ -214,9 +214,9 @@ static bool map_parse(const cJSON *root, Map *m, const char *path)
   ) return false;
 
   size_t count = (size_t)m->width * m->height;
-  m->cells = calloc(count, sizeof *m->cells);
+  m->ground = calloc(count, sizeof *m->ground);
   m->collsions = calloc(count, sizeof *m->collsions);
-  if (!m->cells && !m->collsions) return false;
+  if (!m->ground && !m->collsions) return false;
 
   const cJSON *layers = cJSON_GetObjectItemCaseSensitive(root, "layers");
   if (!cJSON_IsArray(layers)) {
@@ -319,5 +319,5 @@ void map_free(Map *m)
 {
   if (!m) return;
 
-  free(m->cells);
+  free(m->ground);
 }
