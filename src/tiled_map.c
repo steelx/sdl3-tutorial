@@ -318,6 +318,12 @@ bool get_collision_gid(const Map *m, int x, int y)
 void map_free(Map *m)
 {
   if (!m) return;
-
+  free(m->collsions);
   free(m->ground);
+
+  for (size_t i = 0; i < m->layer_count; ++i) {
+    free(m->layers[i].cells);
+  }
+  free(m->layers);
+  *m = (Map){0};
 }

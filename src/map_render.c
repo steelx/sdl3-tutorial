@@ -28,8 +28,8 @@ void map_render(Game *g)
     const MapLayer *l = &g->map.layers[i];
     if (!l->visible) continue;
 
-    cell_draw(g, l->cells);
     SDL_SetTextureAlphaModFloat(g->atlas, l->opacity);
+    cell_draw(g, l->cells);
   }
 
   SDL_SetTextureAlphaModFloat(g->atlas, 1);

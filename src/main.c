@@ -100,7 +100,8 @@ int main(void) {
 
     Uint64 now = SDL_GetTicksNS();
     float dt = (float)(now-previous) / NS_PER_SECOND;
-    if (dt > 0.05f) dt = 0.05f;
+    previous = now;
+    if (dt > MAX_DT) dt = MAX_DT;
 
     update(&g, dt);
     draw(&g);
