@@ -151,6 +151,56 @@ static bool map_layer(Map *m, const cJSON *layer, bool *ground_seen, bool *colli
   if (bIsGroundLayer) *ground_seen = true;
   if (bIsCollisionLayer) *collision_seen = true;
 
+  if (map_string_eq(layer, "type", "objectgroup", true))
+  {
+    const cJSON *objects = cJSON_GetObjectItemCaseSensitive(layer, "objects");
+    if (!cJSON_IsArray(objects)) return false;
+
+    bool is_props = strcmp("props", name->valuestring) == 0;
+    bool is_spawn = strcmp("characters", name->valuestring) == 0;
+
+    const cJSON *o;
+    cJSON_ArrayForEach(o, objects) {
+      if (!cJSON_IsObject(o)) continue;
+
+      MapProp *next_prop = NULL; MapSpawn *next_spawn = NULL;
+      if (is_spawn) next_spawn = &m->spawns[m->spawn_count++];
+      if (is_props) next_prop = &m->props[m->prop_count++];
+
+      int xx, yy = 0;
+      map_int(o, "x", false, 0, &xx);
+      map_int(o, "y", false, 0, &yy);
+      const cJSON *o_name = cJSON_GetObjectItemCaseSensitive(o, "name");
+
+      if (next_prop)
+      {
+        next_prop->x = xx;
+        next_prop->y = yy;
+
+        const cJSON *gid = cJSON_GetObjectItemCaseSensitive(o, "gid");
+        if (cJSON_IsNumber(gid)) map_gid(gid, m->tile_count, &next_prop->gid);
+
+        map_int(o, "width", false, 0, &next_prop->width);
+        map_int(o, "height", false, 0, &next_prop->height);
+
+        if (cJSON_IsString(o_name))
+          snprintf(next_prop->name, sizeof(next_prop->name), "%s", o_name->valuestring);
+      }
+
+      if (next_spawn)
+      {
+        next_spawn->tx = xx / m->tile_width;
+        next_spawn->ty = yy / m->tile_height;
+
+        if (cJSON_IsString(o_name))
+          snprintf(next_spawn->name, sizeof(next_spawn->name), "%s", o_name->valuestring);
+
+        map_bool(o, "point", false, &next_spawn->point);
+      }
+    }
+
+    return true;
+  }
 
   // layer validations
   int id, w, h = 0;
@@ -226,18 +276,37 @@ static bool map_parse(const cJSON *root, Map *m, const char *path)
 
   const cJSON *layer;
   uint8_t visual_count = 0;
+  size_t prop_count, spawn_count = 0;
   cJSON_ArrayForEach(layer, layers) {
     const cJSON *name = cJSON_GetObjectItemCaseSensitive(layer, "name");
+    const cJSON *type = cJSON_GetObjectItemCaseSensitive(layer, "type");
     if (
       cJSON_IsString(name) &&
       strcmp("ground", name->valuestring) != 0 &&
-      strcmp("collision", name->valuestring) != 0
+      strcmp("collision", name->valuestring) != 0 &&
+      (cJSON_IsString(type) && strcmp("objectgroup", type->valuestring) != 0)
     ) {
       ++visual_count;
     }
+
+    const cJSON *objects = cJSON_GetObjectItemCaseSensitive(layer, "objects");
+    if (strcmp("props", name->valuestring) == 0)
+    {
+      if (cJSON_IsArray(objects)) prop_count = cJSON_GetArraySize(objects);
+    }
+
+    if (strcmp("characters", name->valuestring))
+    {
+      if (cJSON_IsArray(objects)) spawn_count = cJSON_GetArraySize(objects);
+    }
   }
 
-  m->layer_count = 0;
+  m->layer_count = 0; m->spawn_count = 0; m->prop_count = 0;
+
+  if (spawn_count > 0) m->spawns = calloc(spawn_count, sizeof(*m->spawns));
+  else m->spawns = NULL;
+  if (prop_count) m->props = calloc(prop_count, sizeof(*m->props));
+  else m->props = NULL;
 
   if (visual_count > 0) {
     m->layers = calloc(visual_count, sizeof *m->layers);
@@ -325,5 +394,7 @@ void map_free(Map *m)
     free(m->layers[i].cells);
   }
   free(m->layers);
+  if (m->spawns) free(m->spawns);
+  if (m->props) free(m->props);
   *m = (Map){0};
 }

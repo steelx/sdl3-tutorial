@@ -7,6 +7,18 @@
 #define MAP_MAX_W 32
 #define MAP_MAX_H 24
 
+typedef struct {
+  int gid;
+  char name[32];
+  int x, y, width, height;
+} MapProp;
+
+typedef struct {
+  char name[32];
+  int tx, ty; /* tile */
+  bool point;/* marker is a point, false = rectangle */
+} MapSpawn;
+
 // may layers
 typedef struct {
   int id;
@@ -19,8 +31,9 @@ typedef struct {
 typedef struct {
   int *ground;
   bool *collsions;
-  MapLayer *layers;
-  size_t layer_count;
+  MapLayer *layers; size_t layer_count;
+  MapProp *props; size_t prop_count;
+  MapSpawn *spawns; size_t spawn_count;
 
   int width, height;
   int tile_width, tile_height;

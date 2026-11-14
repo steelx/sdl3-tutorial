@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="24" height="22" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="5">
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="24" height="22" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="10">
  <editorsettings>
   <export target="small_room.json" format="json"/>
  </editorsettings>
@@ -32,6 +32,14 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
+ <objectgroup id="5" name="props">
+  <object id="5" name="flowerpot" gid="130" x="128" y="96" width="16" height="16"/>
+  <object id="6" gid="119" x="128" y="80" width="16" height="16"/>
+ </objectgroup>
+ <objectgroup id="6" name="characters">
+  <object id="7" name="hero" x="160" y="32" width="16" height="16"/>
+  <object id="8" name="npc_1" x="144" y="128" width="16" height="16"/>
+ </objectgroup>
  <layer id="4" name="collision" width="24" height="22" visible="0" opacity="0.5" tintcolor="#ff40ff">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,

@@ -15,6 +15,7 @@ typedef struct {
   bool running;
   Map map;
   SDL_Texture *atlas;
+  bool debug;
 } Game;
 
 #endif /* SDL_RPG_GAME_H */

@@ -32,6 +32,16 @@ bool start(Game *g)
   printf("collision[10,1]=%d\n", get_collision_gid(&g->map, 10, 1));
   printf("visual layers=%zu\n",g->map.layer_count);
 
+
+  printf("prop_count=%zu\n",g->map.prop_count);
+  printf("spawn_count=%zu\n",g->map.spawn_count);
+  for(size_t i=0;i<g->map.spawn_count;++i) {
+    printf(
+      "Spawn %s: (x,y=%d,%d) point=%d\n",
+      g->map.spawns[i].name,g->map.spawns[i].tx,g->map.spawns[i].ty,g->map.spawns[i].point
+    );
+  }
+
   g->running = true;
   return true;
 }
@@ -54,6 +64,12 @@ void stop(Game *g)
   SDL_DestroyRenderer(g->renderer);
   SDL_DestroyWindow(g->window);
   SDL_Quit();
+}
+
+void input(Game *g, SDL_Keycode key)
+{
+  if (key == SDLK_ESCAPE) g->running = false;
+  if (key == SDLK_F1) g->debug = !g->debug;
 }
 
 void rectangle(Game *g, int x, int y, int w, int h, SDL_Color c)
@@ -96,6 +112,8 @@ int main(void) {
     while (SDL_PollEvent(&event))
     {
       if (event.type == SDL_EVENT_QUIT) g.running = false;
+      if (event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat)
+        input(&g, event.key.key);
     }
 
     Uint64 now = SDL_GetTicksNS();
